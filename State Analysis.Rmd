@@ -1,0 +1,118 @@
+---
+title: "State Analysis"
+author: "James Walsh"
+date: "1/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tseries)
+library(fredr)
+library(stats)
+library(timetk)
+fredr_set_key("d80031904a0f06ff89e0dada3ccd6056")
+
+```
+
+# State Analysis
+## GDP/Inflation
+## VIX
+## Unexpected inflation
+## Disturbance
+
+```{r defining, include=FALSE}
+start_date<-"1990-01-31"
+end_date<-"2020-10-31"
+
+pch<-function(data, lag = 1) {
+    if (!is.ts(data)) stop("data must be of type ts")
+    if (!is.numeric(lag)) stop("lag must be of type numeric")
+    data/stats::lag(data, -lag) -1
+}
+
+
+```
+
+
+```{r data_download, include=FALSE}
+VIX<-fredr(
+    series_id = "VIXCLS",
+    observation_start = as.Date(start_date),
+    observation_end = as.Date(end_date),
+    frequency = "m"
+)
+names<-c("","","VIX")
+colnames(VIX)<-names
+VIX.ts<-ts(VIX[,3],start=c(1990,1),end=c(2020,10), frequency = 12)
+
+GDP<-fredr(
+    series_id = "GDPC1",
+    observation_start = as.Date("1950-01-31"),
+    observation_end = as.Date(end_date),
+    frequency = "q"
+)
+names<-c("","","GDP")
+colnames(GDP)<-names
+GDP.ts<-ts(GDP[,3],start=c(1950,1),end=c(2020,3), frequency = 4)
+
+GDPPOT<-fredr(
+    series_id = "GDPPOT",
+    observation_start = as.Date("1950-01-31"),
+    observation_end = as.Date(end_date),
+    frequency = "q"
+)
+names<-c("","","")
+colnames(GDPPOT)<-names
+GDPPOT.ts<-ts(GDPPOT[,3],start=c(1950,1),end=c(2020,3), frequency = 4)
+
+CONDEF<-fredr(
+    series_id = "DPCERD3Q086SBEA",
+    observation_start = as.Date("1950-01-31"),
+    observation_end = as.Date(end_date),
+    frequency = "q"
+)
+names<-c("","","")
+colnames(CONDEF)<-names
+CONDEF.ts<-ts(CONDEF[,3],start=c(1950,1),end=c(2020,3), frequency = 4)
+
+GDP.q<-pch(GDP.ts,1)
+GDP.a<-pch(GDP.ts,4)
+GDPPOT.q<-pch(GDPPOT.ts,1)
+GDPPOT.a<-pch(GDPPOT.ts,4)
+CONDEF.q<-pch(CONDEF.ts,1)
+CONDEF.a<-pch(CONDEF.ts,4)
+
+GDP.diff<-GDP.a-stats::lag(GDP.a,-4)
+CONDEF.diff<-CONDEF.a-stats::lag(CONDEF.a,-4)
+
+GDPvPOT<-(GDP.ts/GDPPOT.ts-1)
+
+cycledata<-cbind(GDP.ts,GDP.q,GDP.a,GDP.diff,GDPPOT.ts,GDPPOT.q,GDPPOT.a,CONDEF.ts,CONDEF.q,CONDEF.a,CONDEF.diff)
+cycledata.tb<-tk_tbl(cycledata)
+
+plot(CONDEF.a)
+plot(GDP.a)
+
+cycledata<-mutate(cycledata.tb,GDPvPOT = (GDP.ts/GDPPOT.ts)-1)
+
+POT <- pch(GDPPOT.ts,4)
+
+mutate(cycledata.tb,POTx =POT)
+
+GDP.diff>0 & CONDEF.diff>0
+
+
+
+```
+
+
+```{r createfunctions}
+mean_roll_12<-slidify(mean,.period = 12,.align="right")
+
+
+```
+
+
+
